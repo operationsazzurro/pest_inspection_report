@@ -261,7 +261,7 @@
         <div class="photo-grid" id="photoGrid"></div>
         <label class="add-photo-btn">
           + Add photo
-          <input type="file" accept="image/*" capture="environment" id="photoInput" style="display:none" multiple>
+          <input type="file" accept="image/*" id="photoInput" style="display:none" multiple>
         </label>
       </div>
     </section>
@@ -599,6 +599,7 @@ async function saveEntry(){
     });
     if(error){ console.error(error); toast('Save failed, try again'); return; }
     toast('Saved: ' + data.refId);
+    clearForm();
     await loadHistory();
   }catch(err){
     console.error(err);
@@ -780,10 +781,10 @@ async function generatePdfFromData(data){
   doc.setTextColor(...brand);
   doc.setFont('helvetica','bold');
   doc.setFontSize(16);
-  doc.text('PEST CONTROL SERVICE REPORT', pageW / 2, titleY, { align: 'center' });
+  doc.text('PEST CONTROL SERVICE REPORT', margin, titleY);
   doc.setDrawColor(...brand);
   doc.setLineWidth(1.2);
-  doc.line(pageW / 2 - 125, titleY + 10, pageW / 2 + 125, titleY + 10);
+  doc.line(margin, titleY + 10, margin + 250, titleY + 10);
 
   y = titleY + 40;
   doc.setTextColor(20,20,20);
