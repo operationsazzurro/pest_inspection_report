@@ -919,7 +919,13 @@ async function generatePdfFromData(data){
     drawLetterheadFooter(doc);
   }
 
-  doc.save((data.refId || 'pest-control-report') + '.pdf');
+  const siteSlug = (data.siteName || 'site')
+  .trim()
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/(^-|-$)/g, '')
+  .slice(0, 30);
+doc.save(`${siteSlug}-${data.refId || 'report'}.pdf`);
 }
 
 document.getElementById('pdfBtn').addEventListener('click', async ()=>{
