@@ -945,12 +945,33 @@ function handleHistoryPdf(data){
   });
 }
 
+function storagePathFromUrl(url){
+  // public URLs look like: https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
+  const marker = `/object/public/${PHOTOS_BUCKET}/`;
+  const idx = url.indexOf(marker);
+  if(idx === -1) return null;
+  return decodeURIComponent(url.slice(idx + marker.length));
+}
+
+async function deletePhotosForReport(en){
+  if(!en || !Array.isArray(en.photos) || !en.photos.length) return;
+  const paths = en.photos.map(p => storagePathFromUrl(p.url)).filter(Boolean);
+  if(!paths.length) return;
+  const { error } = await sb.storage.from(PHOTOS_BUCKET).remove(paths);
+  if(error){
+    // Don't block the report deletion if photo cleanup fails - just log it
+    console.error('Photo cleanup failed:', error);
+  }
+}
+
 async function deleteEntry(refId){
   if(!isAdmin){ toast('Admin access required'); return; }
   if(!confirm('Delete report ' + refId + '?')) return;
   try{
+    const row = allReports.find(r => r.ref_id === refId);
     const { error } = await sb.from('reports').delete().eq('ref_id', refId);
     if(error) throw error;
+    await deletePhotosForReport(row ? row.data : null);
     toast('Deleted');
     await loadHistory();
   }catch(err){
