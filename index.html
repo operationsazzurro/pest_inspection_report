@@ -50,6 +50,18 @@
 
   main{padding-top:20px;}
 
+  /* tabs */
+  .tab-bar{
+    display:flex; gap:8px; margin-bottom:16px; border-bottom:1px solid var(--line);
+  }
+  .tab-btn{
+    flex:1; background:none; border:none; border-bottom:2px solid transparent;
+    color:var(--ink-dim); font-family:'JetBrains Mono',monospace; font-size:12px;
+    letter-spacing:.08em; text-transform:uppercase; padding:0 0 12px; cursor:pointer;
+  }
+  .tab-btn.active{color:var(--amber); border-bottom-color:var(--amber);}
+  .tab-pane{ }
+
   .panel{
     background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
     margin-bottom:16px; overflow:hidden;
@@ -191,115 +203,232 @@
     text-transform:uppercase;
   }
 
+  /* landing / auth screens */
+  .landing-screen{
+    position:fixed; inset:0; z-index:50; background:var(--bg);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .landing-card{width:100%; max-width:380px;}
+  .landing-card .eyebrow{text-align:center;}
+  .landing-card h1{text-align:center; font-size:22px;}
+  .landing-card .sub{text-align:center; margin-bottom:28px;}
+  .landing-actions{display:flex; flex-direction:column; gap:10px; margin-top:8px;}
+  .landing-back{
+    display:block; text-align:center; margin-top:16px; color:var(--ink-dim);
+    font-size:13px; font-family:'JetBrains Mono',monospace; background:none; border:none; cursor:pointer;
+  }
+  .auth-msg{min-height:16px; text-align:center; font-size:12px; color:var(--danger); margin-top:14px;}
+  .auth-msg.ok{color:var(--field-green);}
+
+  /* header settings gear */
+  header{padding-right:52px;}
+  .settings-btn{
+    position:absolute; top:26px; right:16px; width:34px; height:34px;
+    border-radius:50%; border:1px solid var(--line); background:var(--surface-2);
+    color:var(--ink-dim); font-size:16px; cursor:pointer; display:flex;
+    align-items:center; justify-content:center;
+  }
+
+  /* modal */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:60; background:rgba(10,11,10,.7);
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  @media(min-width:640px){ .modal-overlay{align-items:center;} }
+  .modal-card{
+    width:100%; max-width:480px; max-height:80vh; background:var(--surface);
+    border:1px solid var(--line); border-radius:var(--radius) var(--radius) 0 0;
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  @media(min-width:640px){ .modal-card{border-radius:var(--radius);} }
+  .modal-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 16px; border-bottom:1px solid var(--line); background:var(--surface-2);
+    font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--ink-dim);
+  }
+  .modal-body{padding:8px 16px; overflow-y:auto;}
+  .modal-foot{padding:12px 16px; border-top:1px solid var(--line);}
+  .user-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 0; border-bottom:1px solid var(--line);
+  }
+  .user-row:last-child{border-bottom:none;}
+  .user-email{font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .user-role{font-size:10px; font-family:'JetBrains Mono',monospace; color:var(--field-green); text-transform:uppercase; margin-top:2px;}
+  .user-row .btn{width:auto; padding:8px 12px; font-size:12px; flex-shrink:0;}
+
 </style>
 </head>
 <body>
-<div class="wrap">
+
+<!-- LANDING: choose Admin or Guest -->
+<div class="landing-screen" id="landingScreen">
+  <div class="landing-card">
+    <p class="eyebrow">Azzurro One Facilities Management</p>
+    <h1>Pest Control Service Report</h1>
+    <p class="sub">Choose how you'd like to continue</p>
+    <div class="landing-actions">
+      <button type="button" class="btn btn-primary" id="guestEnterBtn">Continue as Guest</button>
+      <button type="button" class="btn btn-ghost" id="adminEnterBtn">Enter as Admin</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div class="landing-screen" id="adminLoginScreen" style="display:none;">
+  <div class="landing-card">
+    <p class="eyebrow">Admin Access</p>
+    <h1>Sign In</h1>
+    <p class="sub">Enter your admin credentials</p>
+    <div class="field">
+      <label for="adminEmail">Email</label>
+      <input type="text" id="adminEmail" placeholder="you@company.com" autocomplete="username">
+    </div>
+    <div class="field">
+      <label for="adminPassword">Password</label>
+      <input type="password" id="adminPassword" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="landing-actions" style="margin-top:20px;">
+      <button type="button" class="btn btn-primary" id="adminLoginBtn">Sign In</button>
+    </div>
+    <p class="auth-msg" id="adminLoginMsg"></p>
+    <button type="button" class="landing-back" id="adminBackBtn">&larr; Back</button>
+  </div>
+</div>
+
+<!-- ADMIN SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal" style="display:none;">
+  <div class="modal-card">
+    <div class="modal-head">
+      <span>User Access</span>
+      <button type="button" class="icon-btn" id="closeSettingsBtn">✕</button>
+    </div>
+    <div class="modal-body" id="userListBody">
+      <div class="empty">Loading users...</div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn-ghost" id="signOutBtn">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="appWrap" style="display:none;">
   <header>
     <p class="eyebrow">Azzurro One Facilities Management</p>
     <h1>Pest Control Service Report</h1>
     <p class="sub">Capture visit details and photos on site. Generate the branded PDF report instantly.</p>
+    <button type="button" class="settings-btn" id="settingsBtn" style="display:none;" title="Admin Settings">⚙</button>
   </header>
 
   <main>
-    <section class="panel">
-      <div class="panel-head"><span class="panel-title">Details</span></div>
-      <div class="panel-body">
-        <div class="row2">
-          <div class="field">
-            <label for="inspectDate">Date</label>
-            <input type="text" id="inspectDate" readonly>
-          </div>
-          <div class="field">
-            <label for="refId">Report No</label>
-            <input type="text" id="refId" placeholder="auto-generated" readonly>
-          </div>
-        </div>
-        <div class="field">
-          <label for="siteName">Site Name / Location</label>
-          <input type="text" id="siteName" placeholder="e.g. Warehouse B">
-        </div>
-        <div class="row2">
-          <div class="field">
-            <label for="inspector">Inspector Name</label>
-            <input type="text" id="inspector" placeholder="Your name">
-          </div>
-          <div class="field">
-            <label for="visitType">Visit Type</label>
-            <select id="visitType">
-              <option value="Call out">Call out</option>
-              <option value="Periodic">Periodic</option>
-              <option value="Followup">Followup</option>
-            </select>
-          </div>
-        </div>
-        <div class="field">
-          <label for="areasCovered">Areas Covered</label>
-          <input type="text" id="areasCovered" placeholder="e.g. Roof, East wing, Loading dock">
-        </div>
-        <div class="field">
-          <label>Findings</label>
-          <div id="findingsList"></div>
-          <button type="button" class="add-photo-btn" id="addFindingBtn">+ Add finding</button>
-        </div>
-        <div class="field">
-          <label>Action Taken</label>
-          <div id="actionsList"></div>
-          <button type="button" class="add-photo-btn" id="addActionBtn">+ Add action taken</button>
-        </div>
-        <div class="field">
-          <label for="recommendation">Recommendation</label>
-          <textarea id="recommendation" placeholder="Recommended next steps..."></textarea>
-        </div>
-      </div>
-    </section>
+    <div class="tab-bar" id="tabBar">
+      <button type="button" class="tab-btn active" id="tabBtnNew" data-tab="new">New Report</button>
+      <button type="button" class="tab-btn" id="tabBtnPast" data-tab="past">Past Reports</button>
+    </div>
 
-    <section class="panel">
-      <div class="panel-head"><span class="panel-title">Photos</span></div>
-      <div class="panel-body">
-        <div class="photo-grid" id="photoGrid"></div>
-        <label class="add-photo-btn">
-          + Add photo
-          <input type="file" accept="image/*" id="photoInput" style="display:none" multiple>
-        </label>
-      </div>
-    </section>
+    <div class="tab-pane" id="tabNewReport">
+      <section class="panel">
+        <div class="panel-head"><span class="panel-title">Details</span></div>
+        <div class="panel-body">
+          <div class="row2">
+            <div class="field">
+              <label for="inspectDate">Date</label>
+              <input type="text" id="inspectDate" readonly>
+            </div>
+            <div class="field">
+              <label for="refId">Report No</label>
+              <input type="text" id="refId" placeholder="auto-generated" readonly>
+            </div>
+          </div>
+          <div class="field">
+            <label for="siteName">Site Name / Location</label>
+            <input type="text" id="siteName" placeholder="e.g. Warehouse B">
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="inspector">Inspector Name</label>
+              <input type="text" id="inspector" placeholder="Your name">
+            </div>
+            <div class="field">
+              <label for="visitType">Visit Type</label>
+              <select id="visitType">
+                <option value="Call out">Call out</option>
+                <option value="Periodic">Periodic</option>
+                <option value="Followup">Followup</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="areasCovered">Areas Covered</label>
+            <input type="text" id="areasCovered" placeholder="e.g. Roof, East wing, Loading dock">
+          </div>
+          <div class="field">
+            <label>Findings</label>
+            <div id="findingsList"></div>
+            <button type="button" class="add-photo-btn" id="addFindingBtn">+ Add finding</button>
+          </div>
+          <div class="field">
+            <label>Action Taken</label>
+            <div id="actionsList"></div>
+            <button type="button" class="add-photo-btn" id="addActionBtn">+ Add action taken</button>
+          </div>
+          <div class="field">
+            <label for="recommendation">Recommendation</label>
+            <textarea id="recommendation" placeholder="Recommended next steps..."></textarea>
+          </div>
+        </div>
+      </section>
 
-    <section class="panel">
-      <div class="panel-head"><span class="panel-title">Client Signature</span></div>
-      <div class="panel-body">
-        <div class="sig-wrap">
-          <canvas id="sigCanvas" width="600" height="220"></canvas>
+      <section class="panel">
+        <div class="panel-head"><span class="panel-title">Photos</span></div>
+        <div class="panel-body">
+          <div class="photo-grid" id="photoGrid"></div>
+          <label class="add-photo-btn">
+            + Add photo
+            <input type="file" accept="image/*" id="photoInput" style="display:none" multiple>
+          </label>
         </div>
-        <div class="sig-actions">
-          <button type="button" class="btn btn-ghost" id="sigClearBtn">Clear Signature</button>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <section class="panel">
-      <div class="panel-head">
-        <span class="panel-title">Team Reports (shared)</span>
-        <span class="badge" id="historyCount">0</span>
-      </div>
-      <div class="filter-bar">
-        <div class="filter-field">
-          <label for="filterFrom">From</label>
-          <input type="date" id="filterFrom">
+      <section class="panel">
+        <div class="panel-head"><span class="panel-title">Client Signature</span></div>
+        <div class="panel-body">
+          <div class="sig-wrap">
+            <canvas id="sigCanvas" width="600" height="220"></canvas>
+          </div>
+          <div class="sig-actions">
+            <button type="button" class="btn btn-ghost" id="sigClearBtn">Clear Signature</button>
+          </div>
         </div>
-        <div class="filter-field">
-          <label for="filterTo">To</label>
-          <input type="date" id="filterTo">
+      </section>
+    </div>
+
+    <div class="tab-pane" id="tabPastReports" style="display:none;">
+      <section class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Team Reports (shared)</span>
+          <span class="badge" id="historyCount">0</span>
         </div>
-        <button type="button" class="btn btn-ghost filter-clear" id="filterClearBtn">Clear</button>
-      </div>
-      <div id="historyList"></div>
-    </section>
+        <div class="filter-bar">
+          <div class="filter-field">
+            <label for="filterFrom">From</label>
+            <input type="date" id="filterFrom">
+          </div>
+          <div class="filter-field">
+            <label for="filterTo">To</label>
+            <input type="date" id="filterTo">
+          </div>
+          <button type="button" class="btn btn-ghost filter-clear" id="filterClearBtn">Clear</button>
+        </div>
+        <div id="historyList"></div>
+      </section>
+    </div>
 
   </main>
 </div>
 
-<div class="actionbar">
+<div class="actionbar" id="actionbar" style="display:none;">
   <div class="actionbar-inner">
     <button class="btn btn-ghost" id="clearBtn" style="flex:0 0 auto; width:auto; padding:13px 16px;">Clear</button>
     <button class="btn btn-primary" id="saveBtn">Save Entry</button>
@@ -316,6 +445,141 @@ const SUPABASE_URL = 'https://hktyjebgxtblmyshinmp.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_TgY-U8AsTvbHFEtkwU9C9Q_zi9ZAieW';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const PHOTOS_BUCKET = 'site-photos';
+
+/* ---------------- Tabs: New Report / Past Reports ---------------- */
+function switchTab(tab){
+  const isNew = tab === 'new';
+  document.getElementById('tabNewReport').style.display = isNew ? 'block' : 'none';
+  document.getElementById('tabPastReports').style.display = isNew ? 'none' : 'block';
+  document.getElementById('tabBtnNew').classList.toggle('active', isNew);
+  document.getElementById('tabBtnPast').classList.toggle('active', !isNew);
+  document.getElementById('actionbar').style.display = isNew ? 'flex' : 'none';
+  if(!isNew) loadHistory();
+}
+document.getElementById('tabBtnNew').addEventListener('click', ()=> switchTab('new'));
+document.getElementById('tabBtnPast').addEventListener('click', ()=> switchTab('past'));
+/* ------------------------------------------------------------------ */
+
+/* ---------------- Access control (Admin / Guest) ---------------- */
+let isAdmin = false;
+let currentUser = null;
+
+function enterApp(admin){
+  isAdmin = admin;
+  document.getElementById('landingScreen').style.display = 'none';
+  document.getElementById('adminLoginScreen').style.display = 'none';
+  document.getElementById('appWrap').style.display = 'block';
+  document.getElementById('settingsBtn').style.display = admin ? 'flex' : 'none';
+  switchTab('new');
+}
+
+document.getElementById('guestEnterBtn').addEventListener('click', ()=>{
+  enterApp(false);
+});
+
+document.getElementById('adminEnterBtn').addEventListener('click', ()=>{
+  document.getElementById('landingScreen').style.display = 'none';
+  document.getElementById('adminLoginScreen').style.display = 'flex';
+});
+
+document.getElementById('adminBackBtn').addEventListener('click', ()=>{
+  document.getElementById('adminLoginScreen').style.display = 'none';
+  document.getElementById('landingScreen').style.display = 'flex';
+  document.getElementById('adminLoginMsg').textContent = '';
+});
+
+document.getElementById('adminLoginBtn').addEventListener('click', async ()=>{
+  const email = document.getElementById('adminEmail').value.trim();
+  const password = document.getElementById('adminPassword').value;
+  const msgEl = document.getElementById('adminLoginMsg');
+  msgEl.className = 'auth-msg';
+  if(!email || !password){
+    msgEl.textContent = 'Enter email and password';
+    return;
+  }
+  msgEl.textContent = 'Signing in...';
+  try{
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if(error){
+      msgEl.textContent = 'Sign in failed: ' + error.message;
+      return;
+    }
+    const { data: profile, error: pErr } = await sb
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', data.user.id)
+      .single();
+    if(pErr || !profile || !profile.is_admin){
+      msgEl.textContent = 'This account does not have admin access.';
+      await sb.auth.signOut();
+      return;
+    }
+    currentUser = data.user;
+    msgEl.className = 'auth-msg ok';
+    msgEl.textContent = 'Welcome back.';
+    enterApp(true);
+  }catch(err){
+    console.error(err);
+    msgEl.textContent = 'Something went wrong. Try again.';
+  }
+});
+
+document.getElementById('settingsBtn').addEventListener('click', async ()=>{
+  document.getElementById('settingsModal').style.display = 'flex';
+  await loadUserList();
+});
+
+document.getElementById('closeSettingsBtn').addEventListener('click', ()=>{
+  document.getElementById('settingsModal').style.display = 'none';
+});
+
+document.getElementById('signOutBtn').addEventListener('click', async ()=>{
+  await sb.auth.signOut();
+  location.reload();
+});
+
+async function loadUserList(){
+  const listEl = document.getElementById('userListBody');
+  listEl.innerHTML = '<div class="empty">Loading users...</div>';
+  try{
+    const { data: rows, error } = await sb
+      .from('profiles')
+      .select('id, email, is_admin')
+      .order('email', { ascending: true });
+    if(error) throw error;
+    if(!rows || !rows.length){
+      listEl.innerHTML = '<div class="empty">No users found.</div>';
+      return;
+    }
+    listEl.innerHTML = rows.map(u => `
+      <div class="user-row">
+        <div>
+          <div class="user-email">${u.email || u.id}</div>
+          <div class="user-role">${u.is_admin ? 'Admin' : 'Guest / no access'}</div>
+        </div>
+        <button type="button" class="btn ${u.is_admin ? 'btn-danger' : 'btn-ghost'}" onclick="toggleAdmin('${u.id}', ${u.is_admin ? 'false' : 'true'})">
+          ${u.is_admin ? 'Remove Admin' : 'Make Admin'}
+        </button>
+      </div>
+    `).join('');
+  }catch(err){
+    console.error(err);
+    listEl.innerHTML = '<div class="empty">Could not load users. Check the profiles table &amp; RLS policies.</div>';
+  }
+}
+
+async function toggleAdmin(userId, makeAdmin){
+  try{
+    const { error } = await sb.from('profiles').update({ is_admin: makeAdmin }).eq('id', userId);
+    if(error) throw error;
+    toast(makeAdmin ? 'Granted admin access' : 'Removed admin access');
+    await loadUserList();
+  }catch(err){
+    console.error(err);
+    toast('Update failed');
+  }
+}
+/* ------------------------------------------------------------------ */
 
 function compressImage(file, maxWidth = 1280, quality = 0.72){
   return new Promise((resolve, reject)=>{
@@ -659,7 +923,7 @@ function renderHistoryList(){
       </div>
       <div class="hi-actions">
         <button class="icon-btn" title="Generate PDF" onclick='handleHistoryPdf(${JSON.stringify(en).replace(/'/g,"&apos;")})'>PDF</button>
-        <button class="icon-btn" title="Delete" onclick="deleteEntry('${row.ref_id}')">✕</button>
+        ${isAdmin ? `<button class="icon-btn" title="Delete" onclick="deleteEntry('${row.ref_id}')">✕</button>` : ''}
       </div>
     </div>
   `;
@@ -682,6 +946,7 @@ function handleHistoryPdf(data){
 }
 
 async function deleteEntry(refId){
+  if(!isAdmin){ toast('Admin access required'); return; }
   if(!confirm('Delete report ' + refId + '?')) return;
   try{
     const { error } = await sb.from('reports').delete().eq('ref_id', refId);
@@ -945,7 +1210,6 @@ document.getElementById('pdfBtn').addEventListener('click', async ()=>{
 });
 
 renderPhotos();
-loadHistory();
 </script>
 </body>
 </html>
