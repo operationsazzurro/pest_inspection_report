@@ -232,6 +232,19 @@
   }
   .landing-card .field label{margin-bottom:8px;}
   .landing-actions{display:flex; flex-direction:column; gap:10px; margin-top:8px;}
+  .report-type-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:18px; box-shadow:var(--shadow); text-align:left; cursor:pointer; width:100%;
+    font-family:'Inter',sans-serif;
+  }
+  .report-type-card:active{border-color:var(--blue); background:var(--blue-soft);}
+  .report-type-card .rt-name{font-size:15px; font-weight:800; color:var(--ink); margin-bottom:4px;}
+  .report-type-card .rt-desc{font-size:12.5px; color:var(--ink-dim); line-height:1.4;}
+  .header-link{
+    display:block; background:none; border:none; color:rgba(255,255,255,.9);
+    font-family:'Inter',sans-serif; font-size:12.5px; font-weight:700; text-decoration:underline;
+    padding:0; margin-top:10px; cursor:pointer;
+  }
   .landing-back{
     display:flex; align-items:center; justify-content:center; gap:6px;
     text-align:center; margin-top:18px; color:var(--blue-dim);
@@ -288,7 +301,7 @@
 <div class="landing-screen" id="landingScreen">
   <div class="landing-card">
     <p class="eyebrow">Azzurro One Facilities Management</p>
-    <h1>Pest Control Service Report</h1>
+    <h1>Site Inspection Report</h1>
     <p class="sub">Choose how you'd like to continue</p>
     <div class="landing-actions">
       <button type="button" class="btn btn-primary" id="guestEnterBtn">Continue as Guest</button>
@@ -319,6 +332,16 @@
   </div>
 </div>
 
+<!-- REPORT TYPE SELECTION -->
+<div class="landing-screen" id="reportTypeScreen" style="display:none;">
+  <div class="landing-card">
+    <p class="eyebrow">Azzurro One Facilities Management</p>
+    <h1>Select Report Type</h1>
+    <p class="sub">Choose which report you'd like to work on</p>
+    <div class="landing-actions" id="reportTypeOptions"></div>
+  </div>
+</div>
+
 <!-- ADMIN SETTINGS MODAL -->
 <div class="modal-overlay" id="settingsModal" style="display:none;">
   <div class="modal-card">
@@ -338,8 +361,9 @@
 <div class="wrap" id="appWrap" style="display:none;">
   <header>
     <p class="eyebrow">Azzurro One Facilities Management</p>
-    <h1>Pest Control Service Report</h1>
-    <p class="sub">Capture visit details and photos on site. Generate the branded PDF report instantly.</p>
+    <h1 id="appHeaderTitle">Pest Control Service Report</h1>
+    <p class="sub" id="appHeaderSub">Capture visit details and photos on site. Generate the branded PDF report instantly.</p>
+    <button type="button" class="header-link" id="changeTypeBtn">Change report type</button>
     <button type="button" class="settings-btn" id="settingsBtn" style="display:none;" title="Admin Settings">⚙</button>
   </header>
 
@@ -351,7 +375,7 @@
 
     <div class="tab-pane" id="tabNewReport">
       <section class="panel">
-        <div class="panel-head"><span class="panel-title">Details</span></div>
+        <div class="panel-head"><span class="panel-title" id="detailsPanelTitle">Details</span></div>
         <div class="panel-body">
           <div class="row2">
             <div class="field">
@@ -373,25 +397,21 @@
               <input type="text" id="inspector" placeholder="Your name">
             </div>
             <div class="field">
-              <label for="visitType">Visit Type</label>
-              <select id="visitType">
-                <option value="Call out">Call out</option>
-                <option value="Periodic">Periodic</option>
-                <option value="Followup">Followup</option>
-              </select>
+              <label for="visitType" id="visitTypeLabel">Visit Type</label>
+              <select id="visitType"></select>
             </div>
           </div>
           <div class="field">
-            <label for="areasCovered">Areas Covered</label>
+            <label for="areasCovered" id="areasLabel">Areas Covered</label>
             <input type="text" id="areasCovered" placeholder="e.g. Roof, East wing, Loading dock">
           </div>
           <div class="field">
-            <label>Findings</label>
+            <label id="findingsLabel">Findings</label>
             <div id="findingsList"></div>
             <button type="button" class="add-photo-btn" id="addFindingBtn">+ Add finding</button>
           </div>
           <div class="field">
-            <label>Action Taken</label>
+            <label id="actionsLabel">Action Taken</label>
             <div id="actionsList"></div>
             <button type="button" class="add-photo-btn" id="addActionBtn">+ Add action taken</button>
           </div>
@@ -432,6 +452,11 @@
           <span class="panel-title">Team Reports (shared)</span>
           <span class="badge" id="historyCount">0</span>
         </div>
+        <div class="chip-group" id="typeFilterChips" style="padding:14px 18px 0;">
+          <button type="button" class="chip active" data-type="all">All Types</button>
+          <button type="button" class="chip" data-type="pest_control">Pest Control</button>
+          <button type="button" class="chip" data-type="site_inspection">Site Inspection</button>
+        </div>
         <div class="filter-bar">
           <div class="filter-field">
             <label for="filterFrom">From</label>
@@ -467,6 +492,99 @@ const SUPABASE_KEY = 'sb_publishable_TgY-U8AsTvbHFEtkwU9C9Q_zi9ZAieW';
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const PHOTOS_BUCKET = 'site-photos';
 
+/* ---------------- Report types ---------------- */
+const REPORT_TYPES = {
+  pest_control: {
+    key: 'pest_control',
+    name: 'Pest Control Report',
+    description: 'Log a pest control visit: findings, action taken and client sign-off.',
+    headerTitle: 'Pest Control Service Report',
+    headerSub: 'Capture visit details and photos on site. Generate the branded PDF report instantly.',
+    detailsTitle: 'Details',
+    visitTypeLabel: 'Visit Type',
+    visitTypeOptions: ['Call out', 'Periodic', 'Followup'],
+    areasLabel: 'Areas Covered',
+    areasPlaceholder: 'e.g. Roof, East wing, Loading dock',
+    findingsLabel: 'Findings',
+    findingsPlaceholder: 'Describe a finding...',
+    actionsLabel: 'Action Taken',
+    actionsPlaceholder: 'Describe an action taken...',
+    pdfTitle: 'PEST CONTROL SERVICE REPORT'
+  },
+  site_inspection: {
+    key: 'site_inspection',
+    name: 'Site Inspection Report',
+    description: 'Record site conditions, observations and corrective actions with photos.',
+    headerTitle: 'Site Inspection Report',
+    headerSub: 'Record site conditions and observations. Generate the branded PDF report instantly.',
+    detailsTitle: 'Inspection Details',
+    visitTypeLabel: 'Inspection Type',
+    visitTypeOptions: ['Routine', 'Follow-up', 'Incident'],
+    areasLabel: 'Areas Inspected',
+    areasPlaceholder: 'e.g. Roof, East wing, Loading dock',
+    findingsLabel: 'Observations',
+    findingsPlaceholder: 'Describe an observation...',
+    actionsLabel: 'Corrective Actions',
+    actionsPlaceholder: 'Describe a corrective action...',
+    pdfTitle: 'SITE INSPECTION REPORT'
+  }
+};
+let currentReportType = 'pest_control';
+
+function reportTypeConfig(key){
+  return REPORT_TYPES[key] || REPORT_TYPES.pest_control;
+}
+
+function renderReportTypeOptions(){
+  const wrap = document.getElementById('reportTypeOptions');
+  wrap.innerHTML = Object.values(REPORT_TYPES).map(t => `
+    <button type="button" class="report-type-card" data-type="${t.key}">
+      <div class="rt-name">${t.name}</div>
+      <div class="rt-desc">${t.description}</div>
+    </button>
+  `).join('');
+  wrap.querySelectorAll('.report-type-card').forEach(btn=>{
+    btn.addEventListener('click', ()=> selectReportType(btn.dataset.type));
+  });
+}
+renderReportTypeOptions();
+
+function applyReportTypeToUI(key){
+  const cfg = reportTypeConfig(key);
+  document.getElementById('appHeaderTitle').textContent = cfg.headerTitle;
+  document.getElementById('appHeaderSub').textContent = cfg.headerSub;
+  document.getElementById('detailsPanelTitle').textContent = cfg.detailsTitle;
+  document.getElementById('visitTypeLabel').textContent = cfg.visitTypeLabel;
+  document.getElementById('areasLabel').textContent = cfg.areasLabel;
+  document.getElementById('areasCovered').placeholder = cfg.areasPlaceholder;
+  document.getElementById('findingsLabel').textContent = cfg.findingsLabel;
+  document.getElementById('actionsLabel').textContent = cfg.actionsLabel;
+  const sel = document.getElementById('visitType');
+  sel.innerHTML = cfg.visitTypeOptions.map(o => `<option value="${o}">${o}</option>`).join('');
+}
+
+function showReportTypeScreen(){
+  document.getElementById('appWrap').style.display = 'none';
+  document.getElementById('actionbar').style.display = 'none';
+  document.getElementById('reportTypeScreen').style.display = 'flex';
+}
+
+function selectReportType(key){
+  currentReportType = REPORT_TYPES[key] ? key : 'pest_control';
+  applyReportTypeToUI(currentReportType);
+  document.getElementById('reportTypeScreen').style.display = 'none';
+  document.getElementById('appWrap').style.display = 'block';
+  clearForm();
+  switchTab('new');
+}
+
+document.getElementById('changeTypeBtn').addEventListener('click', ()=>{
+  if(confirm('Switch report type? This will clear the current form.')){
+    showReportTypeScreen();
+  }
+});
+/* ------------------------------------------------------------------ */
+
 /* ---------------- Tabs: New Report / Past Reports ---------------- */
 function switchTab(tab){
   const isNew = tab === 'new';
@@ -489,9 +607,8 @@ function enterApp(admin){
   isAdmin = admin;
   document.getElementById('landingScreen').style.display = 'none';
   document.getElementById('adminLoginScreen').style.display = 'none';
-  document.getElementById('appWrap').style.display = 'block';
   document.getElementById('settingsBtn').style.display = admin ? 'flex' : 'none';
-  switchTab('new');
+  showReportTypeScreen();
 }
 
 document.getElementById('guestEnterBtn').addEventListener('click', ()=>{
@@ -669,7 +786,7 @@ function initForm(){
   document.getElementById('refId').value = genRefId();
   document.getElementById('inspectDate').value = todayDisplay();
   currentDateISO = new Date().toISOString().slice(0,10);
-  document.getElementById('visitType').value = 'Call out';
+  document.getElementById('visitType').value = reportTypeConfig(currentReportType).visitTypeOptions[0];
   findings = [];
   addFinding();
   actionsTaken = [];
@@ -687,7 +804,7 @@ function renderFindings(){
   wrap.innerHTML = findings.map(f => `
     <div class="finding-row">
       <span class="finding-bullet">&bull;</span>
-      <input type="text" placeholder="Describe a finding..." value="${(f.text||'').replace(/"/g,'&quot;')}" oninput="updateFinding('${f.id}', this.value)">
+      <input type="text" placeholder="${reportTypeConfig(currentReportType).findingsPlaceholder}" value="${(f.text||'').replace(/"/g,'&quot;')}" oninput="updateFinding('${f.id}', this.value)">
       <button type="button" class="finding-remove" onclick="removeFinding('${f.id}')">✕</button>
     </div>
   `).join('');
@@ -716,7 +833,7 @@ function renderActions(){
   wrap.innerHTML = actionsTaken.map(a => `
     <div class="finding-row">
       <span class="finding-bullet">&bull;</span>
-      <input type="text" placeholder="Describe an action taken..." value="${(a.text||'').replace(/"/g,'&quot;')}" oninput="updateAction('${a.id}', this.value)">
+      <input type="text" placeholder="${reportTypeConfig(currentReportType).actionsPlaceholder}" value="${(a.text||'').replace(/"/g,'&quot;')}" oninput="updateAction('${a.id}', this.value)">
       <button type="button" class="finding-remove" onclick="removeAction('${a.id}')">✕</button>
     </div>
   `).join('');
@@ -834,6 +951,8 @@ function getSignatureDataUrl(){
 
 function getFormData(){
   return {
+    reportType: currentReportType,
+    reportTypeName: reportTypeConfig(currentReportType).name,
     siteName: document.getElementById('siteName').value.trim(),
     inspectDate: document.getElementById('inspectDate').value,
     inspectDateISO: currentDateISO,
@@ -889,6 +1008,8 @@ async function loadHistory(){
   }
 }
 
+let historyTypeFilter = 'all';
+
 function renderHistoryList(){
   const listEl = document.getElementById('historyList');
   const countEl = document.getElementById('historyCount');
@@ -896,6 +1017,9 @@ function renderHistoryList(){
   const toVal = document.getElementById('filterTo').value;
 
   let rows = allReports;
+  if(historyTypeFilter !== 'all'){
+    rows = rows.filter(row => (row.data.reportType || 'pest_control') === historyTypeFilter);
+  }
   if(fromVal || toVal){
     const fromTime = fromVal ? new Date(fromVal + 'T00:00:00').getTime() : -Infinity;
     const toTime = toVal ? new Date(toVal + 'T23:59:59').getTime() : Infinity;
@@ -912,17 +1036,18 @@ function renderHistoryList(){
     return;
   }
   if(!rows.length){
-    listEl.innerHTML = '<div class="empty">No reports in this date range.</div>';
+    listEl.innerHTML = '<div class="empty">No reports match these filters.</div>';
     return;
   }
 
   listEl.innerHTML = rows.map(row => {
     const en = row.data;
+    const typeName = reportTypeConfig(en.reportType || 'pest_control').name;
     return `
     <div class="history-item">
       <div class="hi-main">
         <div class="hi-title">${en.siteName || '(untitled site)'}</div>
-        <div class="hi-meta">${en.refId} · ${en.visitType || ''} · ${en.inspectDate || ''}</div>
+        <div class="hi-meta">${typeName} · ${en.refId} · ${en.visitType || ''} · ${en.inspectDate || ''}</div>
       </div>
       <div class="hi-actions">
         <button class="icon-btn" title="Generate PDF" onclick='handleHistoryPdf(${JSON.stringify(en).replace(/'/g,"&apos;")})'>PDF</button>
@@ -939,6 +1064,13 @@ document.getElementById('filterClearBtn').addEventListener('click', ()=>{
   document.getElementById('filterFrom').value = '';
   document.getElementById('filterTo').value = '';
   renderHistoryList();
+});
+document.querySelectorAll('#typeFilterChips .chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    historyTypeFilter = chip.dataset.type;
+    document.querySelectorAll('#typeFilterChips .chip').forEach(c=> c.classList.toggle('active', c === chip));
+    renderHistoryList();
+  });
 });
 
 function handleHistoryPdf(data){
@@ -1042,6 +1174,7 @@ function drawLetterheadFooter(doc){
 }
 
 async function generatePdfFromData(data){
+  const cfg = reportTypeConfig(data.reportType);
   const doc = new jsPDF({unit:'pt', format:'a4'});
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -1068,7 +1201,7 @@ async function generatePdfFromData(data){
   doc.setTextColor(...brand);
   doc.setFont('helvetica','bold');
   doc.setFontSize(16);
-  doc.text('PEST CONTROL SERVICE REPORT', pageW / 2, titleY, { align: 'center' });
+  doc.text(cfg.pdfTitle, pageW / 2, titleY, { align: 'center' });
   doc.setDrawColor(...brand);
   doc.setLineWidth(1.2);
   doc.line(pageW / 2 - 125, titleY + 10, pageW / 2 + 125, titleY + 10);
@@ -1081,8 +1214,8 @@ async function generatePdfFromData(data){
     ['Date', data.inspectDate || '-'],
     ['Site Name / Location', data.siteName || '-'],
     ['Inspector Name', data.inspector || '-'],
-    ['Visit Type', data.visitType || '-'],
-    ['Areas Covered', data.areasCovered || '-'],
+    [cfg.visitTypeLabel, data.visitType || '-'],
+    [cfg.areasLabel, data.areasCovered || '-'],
   ];
   doc.setFontSize(11);
   rows.forEach(([label, val])=>{
@@ -1122,8 +1255,8 @@ async function generatePdfFromData(data){
     y += 10;
   }
 
-  bulletSection('FINDINGS', data.findings);
-  bulletSection('ACTION TAKEN', data.actionsTaken);
+  bulletSection(cfg.findingsLabel.toUpperCase(), data.findings);
+  bulletSection(cfg.actionsLabel.toUpperCase(), data.actionsTaken);
 
   ensureSpace(18);
   doc.setFont('helvetica','bold');
